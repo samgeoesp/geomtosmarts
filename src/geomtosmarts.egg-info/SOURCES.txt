@@ -1,0 +1,10 @@
+LICENSE
+README.md
+pyproject.toml
+src/__init__.py
+src/geomtosmarts.py
+src/geomtosmarts.egg-info/PKG-INFO
+src/geomtosmarts.egg-info/SOURCES.txt
+src/geomtosmarts.egg-info/dependency_links.txt
+src/geomtosmarts.egg-info/requires.txt
+src/geomtosmarts.egg-info/top_level.txt

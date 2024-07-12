@@ -40,7 +40,7 @@ from cclib.io import ccread # type: ignore
 # Add Br length to molml constants.
 BOND_LENGTHS['Br'] = {"1":1.3}
 
-def _get_data() -> dict:
+def _get_data(file) -> dict:
     """Function to take all data in current working directory and parse
     the appropriate data using cclib.
 
@@ -52,37 +52,37 @@ def _get_data() -> dict:
     atomic_masses = {1:'H', 6:'C', 7:'N', 8:'O', 9:'F', 14:'Si', 17:'Cl', 35:'Br'}
     data_dict = {}
     d = {}
-    files = []
-    for filename in os.listdir():
-        if filename.endswith(".out") or filename.endswith(".log"):
-            files.append(filename)
-        else:
-            pass
+    # files = []
+    # for filename in os.listdir():
+    #     if filename.endswith(".out") or filename.endswith(".log"):
+    #         files.append(filename)
+    #     else:
+    #         pass
 
-    f_check = []
-    for file in files:
-        d[file] = ccread(file)
-        for vib in d[file].vibfreqs:
-            if vib < 0:
-                position = d[file].vibfreqs.tolist().index(vib)
-        info_d = {}
-        # Pull out coordinates.
-        info_d['coords1'] = d[file].atomcoords[-1].astype(float)
-        info_d['coords2'] = d[file].atomcoords[-1].astype(float) - d[file].vibdisps[position]
-        info_d['coords3'] = d[file].atomcoords[-1].astype(float) + d[file].vibdisps[position]
-        # Pull out maximum allowed cooordinates to allow retry.
-        info_d['max_coords2'] = d[file].atomcoords[-1].astype(float) - d[file].vibdisps[position]*1.1
-        info_d['max_coords3'] = d[file].atomcoords[-1].astype(float) + d[file].vibdisps[position]*1.1
-        info_d['disp_vect'] = d[file].vibdisps[position]
-        info_d['atomnos'] = d[file].atomnos
-        info_d['charge'] = d[file].charge
-        info_d['atomcharges'] = d[file].atomcharges['apt']
-        atom_symbs = []
-        for atom in info_d['atomnos']:
-            atom_symbs.append(atomic_masses[atom])
-        info_d['atomsymb'] = np.array(atom_symbs)
-            
-        data_dict[file] = info_d
+    # Loop through files and extract information with cclib.
+    # for file in files:
+    d[file] = ccread(file)
+    for vib in d[file].vibfreqs:
+        if vib < 0:
+            position = d[file].vibfreqs.tolist().index(vib)
+    info_d = {}
+    # Pull out coordinates.
+    info_d['coords1'] = d[file].atomcoords[-1].astype(float)
+    info_d['coords2'] = d[file].atomcoords[-1].astype(float) - d[file].vibdisps[position]
+    info_d['coords3'] = d[file].atomcoords[-1].astype(float) + d[file].vibdisps[position]
+    # Pull out maximum allowed cooordinates to allow retry.
+    info_d['max_coords2'] = d[file].atomcoords[-1].astype(float) - d[file].vibdisps[position]*1.1
+    info_d['max_coords3'] = d[file].atomcoords[-1].astype(float) + d[file].vibdisps[position]*1.1
+    info_d['disp_vect'] = d[file].vibdisps[position]
+    info_d['atomnos'] = d[file].atomnos
+    info_d['charge'] = d[file].charge
+    info_d['atomcharges'] = d[file].atomcharges['apt']
+    atom_symbs = []
+    for atom in info_d['atomnos']:
+        atom_symbs.append(atomic_masses[atom])
+    info_d['atomsymb'] = np.array(atom_symbs)
+        
+    data_dict[file] = info_d
     return data_dict
 
 def _get_adjacency(data_dict: dict) -> Tuple[dict, dict]:
@@ -321,13 +321,13 @@ def _build_mol(rxn_dict: dict, structure: str) -> Tuple[str, str]:
     # Create the mol structures and determine connectivity.
     r1_mol = Chem.Mol(r1)
     rdDetermineBonds.DetermineConnectivity(r1_mol) 
-    rdDetermineBonds.DetermineBondOrders(r1_mol, charge=rd[structure]['rct_1_charge'])   
+    rdDetermineBonds.DetermineBondOrders(r1_mol, charge=rxn_dict[structure]['rct_1_charge'])   
     r2_mol = Chem.Mol(r2)
     rdDetermineBonds.DetermineConnectivity(r2_mol)    
-    rdDetermineBonds.DetermineBondOrders(r2_mol, charge=rd[structure]['rct_2_charge'])   
+    rdDetermineBonds.DetermineBondOrders(r2_mol, charge=rxn_dict[structure]['rct_2_charge'])   
     p_mol = Chem.Mol(p)
     rdDetermineBonds.DetermineConnectivity(p_mol)    
-    rdDetermineBonds.DetermineBondOrders(p_mol, charge=rd[structure]['p_charge'])             
+    rdDetermineBonds.DetermineBondOrders(p_mol, charge=rxn_dict[structure]['p_charge'])          
     
     # Convert these to SMILES.
     r1_smi = Chem.MolToSmiles(r1_mol)
@@ -347,20 +347,9 @@ def _build_mol(rxn_dict: dict, structure: str) -> Tuple[str, str]:
 
     return rxn_smiles, rxn_smarts
 
-def main():
-    return
-
-if __name__ == '__main__':
-
-    # Create argument parser and arguments. 
-    parser = argparse.ArgumentParser(prog='geomtosmarts', description='Python script for creating Reaction SMILES and SMARTS from optimised TS Gaussian output files.')
-    parser.add_argument('-k', dest='keep', action='store_true', required=False, help='Argument for keeping the created .xyz files. Defaults as False to not keep them.')
-    parser.add_argument('-n', dest='fnames', action='store_true', required=False, help='Argument for saving with filenames. Defaults as False to not save them.')
-    parser.add_argument('-r', dest='rxnpng',action='store_true', required=False, help='Argument for saving Reaction SMARTS .png file. Defaults as False to not save the image.')
-    (options, args) = parser.parse_known_args()
-
+def geo(f, k=False, n=False, r=False):
     # Pull out required data from cclib.
-    dd = _get_data()
+    dd = _get_data(f)
     # Determine reacting atoms and get connectivity.
     dd, cd = _get_connected_atoms(dd)
     # Create the temporary xyz files.
@@ -389,7 +378,7 @@ if __name__ == '__main__':
                     print(f"Error in {structure} - split charge in product.")
                 else:
                     # Write Reaction SMILES and SMARTS to file.
-                    if options.fnames == False:
+                    if n == False:
                         smi_txt.write(f'{rxn_smiles}\n')
                         sma_txt.write(f'{rxn_smarts}\n')
                     else:
@@ -401,15 +390,24 @@ if __name__ == '__main__':
                 
                 # Read in any passed arguments.
                 ## Keeping files.
-                if options.keep == False:
+                if k == False:
                     os.remove(rd[structure]['rct_1'])
                     os.remove(rd[structure]['rct_2'])
                     os.remove(rd[structure]['prod'])
                 ## Saving the reaction as a .png file.
-                if options.rxnpng == True:
+                if r == True:
                     d2d = Draw.MolDraw2DCairo(800,300)
                     d2d.DrawReaction(rxn)
                     png = d2d.GetDrawingText()
                     open(f'{structure.split(".")[0]}_rxn.png','wb+').write(png)    
 
-                
+    return rxn_smiles, rxn_smarts
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(prog='geomtosmarts', description='Python script for creating Reaction SMILES and SMARTS from optimised TS Gaussian output files.')
+    parser.add_argument('-f', dest='filename', required=True)
+    parser.add_argument('-k', dest='keep', action='store_true', required=False, help='Argument for keeping the created .xyz files. Defaults as False to not keep them.')
+    parser.add_argument('-n', dest='fnames', action='store_true', required=False, help='Argument for saving with filenames. Defaults as False to not save them.')
+    parser.add_argument('-r', dest='rxnpng',action='store_true', required=False, help='Argument for saving Reaction SMARTS .png file. Defaults as False to not save the image.')
+    args = parser.parse_args()
+    geo(args.filename, args.keep, args.fnames, args.rxnpng)

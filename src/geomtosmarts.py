@@ -60,7 +60,6 @@ def _get_data(file) -> dict:
     #         pass
 
     # Loop through files and extract information with cclib.
-    # for file in files:
     d[file] = ccread(file)
     for vib in d[file].vibfreqs:
         if vib < 0:
@@ -180,7 +179,12 @@ def _xyz_creator(data_dict: dict, connect_dict: dict) -> dict:
     # Loop through each structure in the connect_dict
     rxn_dict = {}
     for structure in connect_dict.keys():
-        name1 = structure.split('.')[0]+'_reactant_1.xyz'
+        # Check if filename has any delimiters - currently only looking for /.
+        if '/' in structure:
+            filename = structure.split('/')[-1]
+        else:
+            filename = structure
+        name1 = filename.split('.')[0]+'_reactant_1.xyz'
         file_1 = open(name1, 'w')
         file_1.write(f'{len(connect_dict[structure])}\n\n')
         # Loop through all atoms in the connect_dict for the current structure and pull the coordinates from data_dict
@@ -194,7 +198,7 @@ def _xyz_creator(data_dict: dict, connect_dict: dict) -> dict:
         file_1.close()
         
         # Here we want to get all the atoms in the TS in a list to remove reactant_1 atoms to leave us with reactant_2 atoms
-        name2 = structure.split('.')[0]+'_reactant_2.xyz'
+        name2 = filename.split('.')[0]+'_reactant_2.xyz'
         all_atoms = list(range(0, len(data_dict[structure]['coords1'])))
         second_connect = list(set(all_atoms)- set(connect_dict[structure]))
 
@@ -211,7 +215,7 @@ def _xyz_creator(data_dict: dict, connect_dict: dict) -> dict:
         file_2.close()
 
         # Repeat the same for the product
-        p_name =  structure.split('.')[0]+'_product.xyz'
+        p_name =  filename.split('.')[0]+'_product.xyz'
         file_3 = open(p_name, 'w')
         file_3.write(f"{len(data_dict[structure][data_dict[structure]['product_coords']])}\n\n")
         for atom, coord in zip(data_dict[structure]['atomsymb'], data_dict[structure][data_dict[structure]['product_coords']]):
@@ -358,6 +362,11 @@ def geo(f, k=False, n=False, r=False):
     # Loop through all available Gaussian TS geometries in rd.
     with open('reaction_smiles.txt', 'w') as smi_txt, open('reaction_smarts.txt', 'w') as sma_txt:
         for structure in rd.keys():
+            # Check if filename has any delimiters - currently only looking for /.
+            if '/' in structure:
+                filename = structure.split('/')[-1]
+            else:
+                filename = structure
             try:
                 rxn_smiles, rxn_smarts = _build_mol(rd, structure)
                 # print('Found Correct TS - 1st Attempt.')
@@ -368,22 +377,22 @@ def geo(f, k=False, n=False, r=False):
                     # print(f'{structure} - Found Correct TS - 2nd Attempt.')
                 except:
                     rxn_smiles, rxn_smarts = None, None
-                    print(f'{structure} - Failed to find suitable transition structure')
+                    print(f'{filename} - Failed to find suitable transition structure')
 
             if rxn_smiles == None and rxn_smarts == None:
                 pass
             else:                
                 # Initial Check that the charges match.
                 if _charge_check(rxn_smiles) == False: # type: ignore
-                    print(f"Error in {structure} - split charge in product.")
+                    print(f"Error in {filename} - split charge in product.")
                 else:
                     # Write Reaction SMILES and SMARTS to file.
                     if n == False:
                         smi_txt.write(f'{rxn_smiles}\n')
                         sma_txt.write(f'{rxn_smarts}\n')
                     else:
-                        smi_txt.write(f'{structure.split('.')[0]},{rxn_smiles}\n')
-                        sma_txt.write(f'{structure.split('.')[0]},{rxn_smarts}\n')
+                        smi_txt.write(f'{filename.split('.')[0]},{rxn_smiles}\n')
+                        sma_txt.write(f'{filename.split('.')[0]},{rxn_smarts}\n')
 
                 # Create the reaction.
                 rxn = AllChem.ReactionFromSmarts(rxn_smarts) # type: ignore
@@ -399,7 +408,7 @@ def geo(f, k=False, n=False, r=False):
                     d2d = Draw.MolDraw2DCairo(800,300)
                     d2d.DrawReaction(rxn)
                     png = d2d.GetDrawingText()
-                    open(f'{structure.split(".")[0]}_rxn.png','wb+').write(png)    
+                    open(f'{filename.split(".")[0]}_rxn.png','wb+').write(png)    
 
     return rxn_smiles, rxn_smarts
 

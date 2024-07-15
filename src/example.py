@@ -1,6 +1,6 @@
 from geomtosmarts import geo
 
-smiles, smarts = geo('../examples/diels_alder.out', r=True)
+smiles, smarts = geo('../examples/diels_alder.out', r=True, k=True, n=True)
 
 print(f'Reaction SMARTS:\n{smarts}')
 print('---')

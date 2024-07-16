@@ -24,7 +24,6 @@
 
 # Imports
 import os
-import sys
 import argparse
 import numpy as np
 import xyz_py as xyzp
@@ -52,13 +51,6 @@ def _get_data(file) -> dict:
     atomic_masses = {1:'H', 6:'C', 7:'N', 8:'O', 9:'F', 14:'Si', 17:'Cl', 35:'Br'}
     data_dict = {}
     d = {}
-    # files = []
-    # for filename in os.listdir():
-    #     if filename.endswith(".out") or filename.endswith(".log"):
-    #         files.append(filename)
-    #     else:
-    #         pass
-
     # Loop through files and extract information with cclib.
     d[file] = ccread(file)
     for vib in d[file].vibfreqs:
@@ -179,11 +171,8 @@ def _xyz_creator(data_dict: dict, connect_dict: dict) -> dict:
     # Loop through each structure in the connect_dict
     rxn_dict = {}
     for structure in connect_dict.keys():
-        # Check if filename has any delimiters - currently only looking for /.
-        if '/' in structure:
-            filename = structure.split('/')[-1]
-        else:
-            filename = structure
+        # Clean filename.
+        filename = os.path.basename(structure)
         name1 = filename.split('.')[0]+'_reactant_1.xyz'
         file_1 = open(name1, 'w')
         file_1.write(f'{len(connect_dict[structure])}\n\n')
@@ -362,11 +351,8 @@ def geo(f, k=False, n=False, r=False):
     # Loop through all available Gaussian TS geometries in rd.
     with open('reaction_smiles.txt', 'w') as smi_txt, open('reaction_smarts.txt', 'w') as sma_txt:
         for structure in rd.keys():
-            # Check if filename has any delimiters - currently only looking for /.
-            if '/' in structure:
-                filename = structure.split('/')[-1]
-            else:
-                filename = structure
+            # Clean filename.
+            filename = os.path.basename(structure)
             try:
                 rxn_smiles, rxn_smarts = _build_mol(rd, structure)
                 # print('Found Correct TS - 1st Attempt.')

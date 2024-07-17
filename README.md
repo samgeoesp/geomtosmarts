@@ -25,8 +25,8 @@ This code works by taking a TS structures that has an associated frequency (Gaus
 ### Options
 
 ```
- -k           Argument for keeping the created .xyz files. Defaults as False to not keep them.
-  -n           Argument for saving with filenames. Defaults as False to not save them.
-  -r           Argument for saving Reaction SMARTS .png file. Defaults as False to not save the image.
-  ```
+-k           Argument for keeping the created .xyz files. Defaults as False to not keep them.
+-n           Argument for saving with filenames. Defaults as False to not save them.
+-r           Argument for saving Reaction SMARTS .png file. Defaults as False to not save the image.
+```
 

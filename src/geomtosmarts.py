@@ -340,6 +340,22 @@ def _build_mol(rxn_dict: dict, structure: str) -> Tuple[str, str]:
 
     return rxn_smiles, rxn_smarts
 
+def _duplicates(filename, seq, rxn_smiles, rxn_smarts):
+    '''
+    Function to check if reaction is already in the file.
+    '''
+
+    if seq == 'a':
+        with open('reaction_smiles.txt') as smi_txt, open('reaction_smarts.txt') as sma_txt:
+            if rxn_smiles in smi_txt.read() and rxn_smarts in sma_txt.read():
+                print(f'{filename} already processed.')
+                return True
+            else:
+                return False
+    else:
+        pass
+        
+
 def geo(f, k=False, n=False, r=False):
     # Pull out required data from cclib.
     dd = _get_data(f)
@@ -348,8 +364,11 @@ def geo(f, k=False, n=False, r=False):
     # Create the temporary xyz files.
     rd = _xyz_creator(dd, cd)
 
+    # Check if files exist and change the sequence to append to existing files.
+    seq = ['a' if os.path.isfile('reaction_smiles.txt') and os.path.isfile('reaction_smarts.txt') else 'w'][0]
+
     # Loop through all available Gaussian TS geometries in rd.
-    with open('reaction_smiles.txt', 'w') as smi_txt, open('reaction_smarts.txt', 'w') as sma_txt:
+    with open('reaction_smiles.txt', seq) as smi_txt, open('reaction_smarts.txt', seq) as sma_txt:
         for structure in rd.keys():
             # Clean filename.
             filename = os.path.basename(structure)
@@ -365,36 +384,41 @@ def geo(f, k=False, n=False, r=False):
                     rxn_smiles, rxn_smarts = None, None
                     print(f'{filename} - Failed to find suitable transition structure')
 
-            if rxn_smiles == None and rxn_smarts == None:
-                pass
-            else:                
-                # Initial Check that the charges match.
-                if _charge_check(rxn_smiles) == False: # type: ignore
-                    print(f"Error in {filename} - split charge in product.")
-                else:
-                    # Write Reaction SMILES and SMARTS to file.
-                    if n == False:
-                        smi_txt.write(f'{rxn_smiles}\n')
-                        sma_txt.write(f'{rxn_smarts}\n')
+            else:
+                if rxn_smiles == None and rxn_smarts == None:
+                    pass
+                else:                
+                    # Initial Check that the charges match.
+                    if _charge_check(rxn_smiles) == False: # type: ignore
+                        print(f"Error in {filename} - split charge in product.")
                     else:
-                        smi_txt.write(f'{filename.split('.')[0]},{rxn_smiles}\n')
-                        sma_txt.write(f'{filename.split('.')[0]},{rxn_smarts}\n')
+                        # Check if reaction has already been converted previously - save computation.
+                        if _duplicates(filename, seq, rxn_smiles, rxn_smarts) is True:
+                            pass
+                        else:
+                        # Write Reaction SMILES and SMARTS to file.
+                            if n == False:
+                                smi_txt.write(f'{rxn_smiles}\n')
+                                sma_txt.write(f'{rxn_smarts}\n')
+                            else:
+                                smi_txt.write(f'{filename.split('.')[0]},{rxn_smiles}\n')
+                                sma_txt.write(f'{filename.split('.')[0]},{rxn_smarts}\n')
 
-                # Create the reaction.
-                rxn = AllChem.ReactionFromSmarts(rxn_smarts) # type: ignore
-                
-                # Read in any passed arguments.
-                ## Keeping files.
-                if k == False:
-                    os.remove(rd[structure]['rct_1'])
-                    os.remove(rd[structure]['rct_2'])
-                    os.remove(rd[structure]['prod'])
-                ## Saving the reaction as a .png file.
-                if r == True:
-                    d2d = Draw.MolDraw2DCairo(800,300)
-                    d2d.DrawReaction(rxn)
-                    png = d2d.GetDrawingText()
-                    open(f'{filename.split(".")[0]}_rxn.png','wb+').write(png)    
+                    # Create the reaction.
+                    rxn = AllChem.ReactionFromSmarts(rxn_smarts) # type: ignore
+                    
+                    # Read in any passed arguments.
+                    ## Keeping files.
+                    if k == False:
+                        os.remove(rd[structure]['rct_1'])
+                        os.remove(rd[structure]['rct_2'])
+                        os.remove(rd[structure]['prod'])
+                    ## Saving the reaction as a .png file.
+                    if r == True:
+                        d2d = Draw.MolDraw2DCairo(800,300)
+                        d2d.DrawReaction(rxn)
+                        png = d2d.GetDrawingText()
+                        open(f'{filename.split(".")[0]}_rxn.png','wb+').write(png)    
 
     return rxn_smiles, rxn_smarts
 

@@ -221,7 +221,7 @@ def _xyz_update(structure: str, data_dict: dict, connect_dict: dict, rxn_dict: d
     """Function to update the .xyz files saved if the initial structure failed.
 
     Arguments:
-    structure (string): A string of the filename that will be used to create the temporary .xyz files for each reactant.
+    structure (String): A string of the filename that will be used to create the temporary .xyz files for each reactant.
     data_dict (Dictionary): Dictionary with filename (key) and parsed data (value) pairs.
     connect_dict (Dictionary): A dictionary containing the list of atoms that are connected to the reacting atom.
     rxn_dict (Dictionary): A dictionary containing the information on the reactants/products for a given reaction.
@@ -280,7 +280,7 @@ def _charge_check(rxn_smiles: str) -> bool:
     when not wanted.
 
     Arguments:
-    rxn_smiles (string): A string of the reaction SMILES.
+    rxn_smiles (String): A string of the reaction SMILES.
     """
     # Split the reaction SMILES back into its components.
     r, p = rxn_smiles.split('>>')[0], rxn_smiles.split('>>')[1]
@@ -300,11 +300,11 @@ def _build_mol(rxn_dict: dict, structure: str) -> Tuple[str, str]:
 
     Arguments:
     rxn_dict (Dictionary): A dictionary containing the information on the reactants/products for a given reaction.
-    structure (string): A string of the filename that will be used to create the temporary .xyz files for each reactant.
+    structure (String): A string of the filename that will be used to create the temporary .xyz files for each reactant.
 
     Returns:
-    rxn_smiles (string): A string containing the reaction SMILES.
-    rxn_smarts (string): A string containing the reaction SMARTS.
+    rxn_smiles (String): A string containing the reaction SMILES.
+    rxn_smarts (String): A string containing the reaction SMARTS.
     """
     # Load in the xyz files.
     r1 = Chem.MolFromXYZFile(rxn_dict[structure]['rct_1'])
@@ -340,10 +340,20 @@ def _build_mol(rxn_dict: dict, structure: str) -> Tuple[str, str]:
 
     return rxn_smiles, rxn_smarts
 
-def _duplicates(filename, seq, rxn_smiles, rxn_smarts):
-    '''
-    Function to check if reaction is already in the file.
-    '''
+def _duplicates(filename, seq, rxn_smiles, rxn_smarts) -> bool:
+    """Function to check if reaction is already in the file.
+    
+    Arguments:
+    filename (String): A string of the filename being processed.
+    seq (String): Either 'w' or 'a' depending on if files already exist.
+    rxn_smiles (String): A string containing the reaction SMILES.
+    rxn_smarts (String): A string containing the reaction SMARTS.
+
+    Returns:
+    True if file/reaction already processed.
+    False if a new file/reaction.
+
+    """
 
     if seq == 'a':
         with open('reaction_smiles.txt') as smi_txt, open('reaction_smarts.txt') as sma_txt:
@@ -355,7 +365,6 @@ def _duplicates(filename, seq, rxn_smiles, rxn_smarts):
     else:
         pass
         
-
 def geo(f, k=False, n=False, r=False):
     # Pull out required data from cclib.
     dd = _get_data(f)
